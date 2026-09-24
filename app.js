@@ -129,7 +129,7 @@ function showQuizConfig(){
  currentMode="quiz-config";
  const chars=Object.keys(DB).filter(c=>getData(c));
  const demo=["扭","抱","拍","打","推","拉","找","拾"].filter(c=>DB[c]);
- result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>現在可以從<strong>'+chars.length.toLocaleString()+' 個資料庫漢字</strong>挑選測驗，不再只限原本 8 個字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option><option value="20">20 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">看字選注音</option><option value="reverseSound">看注音選字</option><option value="part">部件</option><option value="word">詞語</option><option value="radical">部首</option></select></div></div><div class="range-box"><strong>🔎 搜尋要考的生字</strong><input id="quizCharSearch" class="quiz-search" placeholder="輸入漢字，例如：清、情、晴、請"><div class="range-list" id="quizCharList"></div><p class="note">點選字卡加入／取消。也可以搜尋資料庫中的其他漢字。</p></div><div class="selected-box"><strong>已選：<span id="selectedCount">0</span> 字</strong><div id="selectedChars" class="selected-chars"></div></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
+ result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>現在可以從<strong>'+chars.length.toLocaleString()+' 個資料庫漢字</strong>挑選測驗，不再只限原本 8 個字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option><option value="20">20 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">看字選注音</option><option value="reverseSound">看注音選字</option><option value="commonPart">共同部件</option><option value="word">詞語</option><option value="radical">部首</option></select></div></div><div class="range-box"><strong>🔎 搜尋要考的生字</strong><input id="quizCharSearch" class="quiz-search" placeholder="輸入漢字，例如：清、情、晴、請"><div class="range-list" id="quizCharList"></div><p class="note">點選字卡加入／取消。也可以搜尋資料庫中的其他漢字。</p></div><div class="selected-box"><strong>已選：<span id="selectedCount">0</span> 字</strong><div id="selectedChars" class="selected-chars"></div></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
  let selected=new Set(demo);
  const list=document.querySelector("#quizCharList"),search=document.querySelector("#quizCharSearch");
  function renderList(){
@@ -150,22 +150,80 @@ function startConfiguredQuiz(selectedOverride){
  const selected=selectedOverride||[...document.querySelectorAll(".range-btn.active")].map(b=>b.dataset.range);
  if(!selected.length){alert("請至少選擇一個生字！");return}
  const count=Number(document.querySelector("#quizCount").value),type=document.querySelector("#quizType").value;
- const chars=shuffle(selected),questions=[];
- for(let i=0;i<count;i++) questions.push({char:chars[i%chars.length],type:type==="mixed"?["sound","reverseSound","part","word","radical"][i%5]:type});
+ const eligibleCommon=selected.filter(c=>findCommonPartQuestion(c,selected));
+ if(type==="commonPart"&&!eligibleCommon.length){
+   alert("目前選到的生字中，找不到至少 3 個共享同一部件的字。請再選幾個有共同部件的字，例如：清、情、晴、睛。");
+   return;
+ }
+ const chars=shuffle(type==="commonPart"?eligibleCommon:selected),questions=[];
+ const mixedTypes=["sound","reverseSound","commonPart","word","radical"];
+ for(let i=0;i<count;i++){
+   let qType=type==="mixed"?mixedTypes[i%mixedTypes.length]:type;
+   let pool=selected;
+   if(qType==="commonPart"){
+     const commonPool=eligibleCommon.length?eligibleCommon:selected;
+     const available=shuffle(commonPool);
+     const chosen=available.find(c=>findCommonPartQuestion(c,commonPool));
+     if(chosen) questions.push({char:chosen,type:qType,pool:commonPool});
+     else qType="sound";
+   }
+   if(qType!=="commonPart") questions.push({char:chars[i%chars.length],type:qType,pool});
+ }
  quizState={questions,idx:0,score:0,answered:false,instantHint:document.querySelector("#instantHint").checked,wrongReview:document.querySelector("#wrongReview").checked,wrong:[]};
  renderQuiz();
 }
 function renderQuiz(){
- const item=quizState.questions[quizState.idx],c=item.char,d=getData(c),type=item.type;let q,opts,answer;
- if(type==="sound"){q="請選出「"+c+"」的正確注音";answer=d.zhuyin;opts=makeOptions(answer,Object.values(DB).map(x=>toZhuyin((x.pinyin||[])[0]||"")).filter(Boolean))}
- else if(type==="reverseSound"){q="哪一個字的注音是「"+d.zhuyin+"」？";answer=c;opts=makeOptions(answer,Object.keys(DB).filter(x=>getData(x)&&getData(x).zhuyin===d.zhuyin))}
- else if(type==="word"){q="哪一個是「"+c+"」的詞語？";answer=d.words[0]||d.definition;opts=makeOptions(answer,Object.values(CUSTOM).flatMap(x=>x.words||[]))}
- else if(type==="radical"){q="「"+c+"」的部首是哪一個？";answer=d.radical;opts=makeOptions(answer,Object.values(DB).map(x=>x.radical).filter(Boolean))}
- else{q="「"+c+"」的主要部件是哪一個？";answer=d.parts[0]?.[0]||d.radical;opts=makeOptions(answer,["扌","口","氵","木","日","亻","艹","言","女","心","宀","糸","土","竹","辶"])}
+ const item=quizState.questions[quizState.idx],c=item.char,d=getData(c),type=item.type;let q,opts,answer,questionVisual="";
+ if(type==="sound"){
+   q="請選出「"+c+"」的正確注音"; answer=d.zhuyin;
+   opts=makeOptions(answer,Object.values(DB).map(x=>toZhuyin((x.pinyin||[])[0]||"")).filter(Boolean));
+   questionVisual='<div class="quiz-char">'+c+'</div>';
+ }else if(type==="reverseSound"){
+   q="哪一個字的注音是「"+d.zhuyin+"」？"; answer=c;
+   opts=makeOptions(answer,Object.keys(DB).filter(x=>getData(x)&&getData(x).zhuyin===d.zhuyin));
+   questionVisual='<div class="quiz-zhuyin">'+escapeHtml(d.zhuyin)+'</div>';
+ }else if(type==="word"){
+   q="哪一個是「"+c+"」的詞語？"; answer=d.words[0]||d.definition;
+   opts=makeOptions(answer,Object.values(CUSTOM).flatMap(x=>x.words||[]));
+   questionVisual='<div class="quiz-char">'+c+'</div>';
+ }else if(type==="radical"){
+   q="「"+c+"」的部首是哪一個？"; answer=d.radical;
+   opts=makeOptions(answer,Object.values(DB).map(x=>x.radical).filter(Boolean));
+   questionVisual='<div class="quiz-char">'+c+'</div>';
+ }else{
+   const info=findCommonPartQuestion(c,item.pool||[]);
+   if(!info){
+     quizState.questions[quizState.idx].type="sound";
+     return renderQuiz();
+   }
+   q="這幾個字都有哪一個共同部件？";
+   answer=info.part;
+   opts=makeOptions(answer,[
+     ...info.family.flatMap(ch=>getData(ch)?.parts.map(p=>p[0])||[]),
+     ...item.pool.flatMap(ch=>getData(ch)?.parts.map(p=>p[0])||[])
+   ]);
+   questionVisual='<div class="common-family">'+info.family.join("　")+'</div><div class="common-hint">找一找：每一個字裡都有哪一個相同的部分？</div>';
+ }
  quizState.answer=answer;quizState.answered=false;
- result.innerHTML='<div class="card"><div class="quiz-progress">📝 第 '+(quizState.idx+1)+' / '+quizState.questions.length+' 題　｜　目前 '+quizState.score+' 分</div><div class="quiz-char">'+c+'</div><h2>'+q+'</h2><div class="quiz-options">'+opts.map(o=>'<button class="quiz-option" data-answer="'+encodeURIComponent(o)+'">'+escapeHtml(o)+'</button>').join("")+'</div><div class="quiz-tip">💡 小提醒：先觀察字形、注音、部件或詞語，再選答案。</div></div>';
+ result.innerHTML='<div class="card"><div class="quiz-progress">📝 第 '+(quizState.idx+1)+' / '+quizState.questions.length+' 題　｜　目前 '+quizState.score+' 分</div>'+questionVisual+'<h2>'+q+'</h2><div class="quiz-options">'+opts.map(o=>'<button class="quiz-option" data-answer="'+encodeURIComponent(o)+'">'+escapeHtml(o)+'</button>').join("")+'</div><div class="quiz-tip">💡 小提醒：先觀察字形，再找出它們共同出現的部件。</div></div>';
  document.querySelectorAll(".quiz-option").forEach(b=>b.addEventListener("click",()=>answerQuiz(decodeURIComponent(b.dataset.answer))));
-}function makeOptions(answer,pool){const unique=[...new Set(pool.filter(x=>x&&x!==answer))];return shuffle([answer,...shuffle(unique).slice(0,3)])}
+}
+function findCommonPartQuestion(target,pool){
+ const targetData=getData(target);
+ if(!targetData)return null;
+ const parts=[...new Set(targetData.parts.map(p=>p[0]).filter(Boolean))];
+ let best=null;
+ for(const part of parts){
+   const family=[...new Set(pool)].filter(ch=>getData(ch)?.parts.some(p=>p[0]===part));
+   if(family.length>=3&&(!best||family.length>best.family.length)) best={part,family};
+ }
+ if(!best)return null;
+ const family=best.family.includes(target)?best.family:best.family.concat(target);
+ const chosen=shuffle(family);
+ const visible=chosen.includes(target)?chosen:shuffle([target,...chosen]);
+ return {part:best.part,family:visible.slice(0,4)};
+}
+function makeOptions(answer,pool){const unique=[...new Set(pool.filter(x=>x&&x!==answer))];return shuffle([answer,...shuffle(unique).slice(0,3)])}
 function answerQuiz(v){
  if(quizState.answered)return;
  quizState.answered=true;const ok=v===quizState.answer;if(ok)quizState.score++;else quizState.wrong.push({char:quizState.questions[quizState.idx].char,answer:quizState.answer});
