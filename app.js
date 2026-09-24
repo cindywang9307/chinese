@@ -73,6 +73,7 @@ function getData(c){
     radical:d.radical||"",
     strokes:Array.isArray(d.strokes)?d.strokes.length:(d.strokes||0),
     parts:rawParts.map((p,i)=>[normalizePart(p),i===0?"color-1":"color-2"]),
+    componentParts:parseDirectParts(decomposition).map(normalizePart),
     words:custom.words||[],
     sentence:custom.sentence||"",
     definition:d.definition||"",
@@ -100,6 +101,23 @@ function parseTopLevel(s){
   const tree=parse();
   return tree&&tree.children?tree.children.flatMap(x=>leafParts(x)):typeof tree==="string"?[tree]:[];
 }
+function parseDirectParts(s){
+  if(!s||s==="？") return [];
+  const ops=new Set(["⿰","⿱","⿲","⿳","⿴","⿵","⿶","⿷","⿸","⿹","⿺","⿻"]);
+  let i=0;
+  function parse(){
+    const ch=s[i++];
+    if(!ch) return "";
+    if(!ops.has(ch)) return ch;
+    const count=["⿲","⿳"].includes(ch)?3:2;
+    const children=[];
+    for(let n=0;n<count;n++) children.push(parse());
+    return {children};
+  }
+  const tree=parse();
+  return tree&&tree.children?tree.children.map(x=>x&&x.children?leafParts(x).join(""):x).filter(Boolean):typeof tree==="string"?[tree]:[];
+}
+
 function leafParts(x){
   return x&&x.children?x.children.flatMap(leafParts):[x];
 }
@@ -123,13 +141,13 @@ function showComponent(){
   currentMode="component";
   const c=input.value.trim().slice(0,1),d=getData(c);
   if(!d){result.innerHTML='<div class="card">請先輸入資料庫已有的生字，再找相同部件喔！🌱</div>';return}
-  const components=[...new Set(d.parts.map(p=>p[0]).filter(Boolean))];
+  const components=[...new Set((d.componentParts&&d.componentParts.length?d.componentParts:d.parts.map(p=>p[0])).filter(Boolean))];
   if(!components.length){result.innerHTML='<div class="card">這個字目前沒有可比較的部件。</div>';return}
 
   const renderFamily=(target)=>{
     const chars=Object.keys(DB).filter(x=>{
       const q=getData(x);
-      return q&&q.parts.some(p=>p[0]===target);
+      return q&&((q.componentParts&&q.componentParts.includes(target))||q.parts.some(p=>p[0]===target));
     }).slice(0,120);
     result.innerHTML='<div class="card"><div class="cute">🎨 🧩 🌱</div><h2>「'+escapeHtml(c)+'」共同部件小家族</h2>'+
       '<p>你可以選擇<strong>任一個部件</strong>來找共同部件，不只第一個部件。</p>'+
