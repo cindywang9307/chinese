@@ -44,6 +44,20 @@ async function initDatabase(){
         extractMoeExampleWords(row.bopomofo||"",c).forEach(w=>{if(!e.words.includes(w))e.words.push(w)});
         normalized[c]=e;
       });
+      // 教育部資料負責字音、部首、筆畫、釋義、例詞；部件只另外補入字形分解資料。
+      try{
+        const compRes=await fetch(COMPONENT_URL);
+        if(compRes.ok){
+          const compText=await compRes.text();
+          compText.split("\n").forEach(line=>{
+            if(!line.trim())return;
+            try{
+              const x=JSON.parse(line);
+              if(x.character&&normalized[x.character]) normalized[x.character].decomposition=x.decomposition||"";
+            }catch(_){}
+          });
+        }
+      }catch(_){}
       DB=normalized;try{localStorage.setItem(cacheKey,JSON.stringify(DB))}catch(_){}
     }
     dbReady=true;
