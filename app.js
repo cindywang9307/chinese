@@ -127,12 +127,27 @@ function lessonCard(c,d,i){
 
 function showQuizConfig(){
  currentMode="quiz-config";
- const chars=Object.keys(DB).filter(c=>getData(c)).slice(0,300);
- result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>這次測驗可以直接從大型資料庫挑字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">字音</option><option value="part">部件</option></select></div></div><div class="range-box"><strong>快速選擇教學字</strong><div class="range-list">'+["扭","抱","拍","打","推","拉","找","拾"].map(c=>'<button class="range-btn active" data-range="'+c+'">'+c+'</button>').join("")+'</div><p class="note">V5 已可輸入更多資料庫漢字；測驗範圍先保留這 8 個教學字，避免一次出現太多選項。</p></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
- document.querySelectorAll(".range-btn").forEach(b=>b.addEventListener("click",()=>b.classList.toggle("active")));
- document.querySelector("#startConfiguredQuiz").addEventListener("click",startConfiguredQuiz);
+ const chars=Object.keys(DB).filter(c=>getData(c));
+ const demo=["扭","抱","拍","打","推","拉","找","拾"].filter(c=>DB[c]);
+ result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>現在可以從<strong>'+chars.length.toLocaleString()+' 個資料庫漢字</strong>挑選測驗，不再只限原本 8 個字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option><option value="20">20 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">字音</option><option value="part">部件</option></select></div></div><div class="range-box"><strong>🔎 搜尋要考的生字</strong><input id="quizCharSearch" class="quiz-search" placeholder="輸入漢字，例如：清、情、晴、請"><div class="range-list" id="quizCharList"></div><p class="note">點選字卡加入／取消。也可以搜尋資料庫中的其他漢字。</p></div><div class="selected-box"><strong>已選：<span id="selectedCount">0</span> 字</strong><div id="selectedChars" class="selected-chars"></div></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
+ let selected=new Set(demo);
+ const list=document.querySelector("#quizCharList"),search=document.querySelector("#quizCharSearch");
+ function renderList(){
+   const q=search.value.trim();
+   const pool=chars.filter(c=>!q||c.includes(q)).slice(0,120);
+   list.innerHTML=pool.map(c=>'<button class="range-btn '+(selected.has(c)?"active":"")+'" data-range="'+c+'">'+c+'</button>').join("")+(pool.length===120?'<div class="note">顯示前 120 個結果，請縮小搜尋範圍。</div>':"");
+   list.querySelectorAll(".range-btn").forEach(b=>b.addEventListener("click",()=>{const c=b.dataset.range;if(selected.has(c))selected.delete(c);else selected.add(c);renderList();renderSelected()}));
+ }
+ function renderSelected(){
+   document.querySelector("#selectedCount").textContent=selected.size;
+   document.querySelector("#selectedChars").innerHTML=[...selected].map(c=>'<span class="selected-char">'+c+'</span>').join("");
+ }
+ search.addEventListener("input",renderList);
+ renderList();renderSelected();
+ document.querySelector("#startConfiguredQuiz").addEventListener("click",()=>startConfiguredQuiz([...selected]));
 }
-function startConfiguredQuiz(){
+function startConfiguredQuiz(selectedOverride){
+ const selected=selectedOverride||[...document.querySelectorAll(".range-btn.active")].map(b=>b.dataset.range);(){
  const selected=[...document.querySelectorAll(".range-btn.active")].map(b=>b.dataset.range);
  if(!selected.length){alert("請至少選擇一個生字！");return}
  const count=Number(document.querySelector("#quizCount").value),type=document.querySelector("#quizType").value;
