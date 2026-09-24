@@ -1,7 +1,8 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif;background:#fff8f0;color:#443b35}
 button,input{font:inherit}
-.app{width:min(920px,92%);margin:36px auto 60px}
+button{cursor:pointer}
+.app{width:min(1000px,92%);margin:36px auto 60px}
 .hero{display:flex;gap:20px;align-items:center;background:#fff;border:3px solid #f1dfce;border-radius:28px;padding:25px 30px;box-shadow:0 8px 24px rgba(80,55,35,.08)}
 .hero-icon{font-size:58px;background:#fff0d9;border-radius:22px;padding:12px 16px}
 .eyebrow{margin:0 0 5px;color:#a36b3d;font-weight:700;letter-spacing:.08em}
@@ -11,9 +12,11 @@ h1{margin:0;font-size:34px}
 .search-card label{display:block;font-weight:700;margin-bottom:10px}
 .search-row{display:flex;gap:10px}
 input{width:100px;text-align:center;font-size:34px;border:2px solid #dcc9b8;border-radius:15px;padding:8px;background:#fffdfb}
-#analyzeBtn{border:0;border-radius:15px;padding:0 22px;background:#f2a65a;color:white;font-weight:700;cursor:pointer}
+#analyzeBtn{border:0;border-radius:15px;padding:0 22px;background:#f2a65a;color:white;font-weight:700}
 .quick{margin-top:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#806f62}
-.quick-btn{border:1px solid #ead6c5;background:#fff7ed;border-radius:999px;padding:5px 14px;cursor:pointer}
+.quick-btn{border:1px solid #ead6c5;background:#fff7ed;border-radius:999px;padding:5px 14px}
+.tool-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:18px;border-top:1px dashed #e4d4c5}
+.secondary-btn{border:2px solid #e4d4c5;background:#fffaf5;border-radius:14px;padding:10px 16px;color:#66564b;font-weight:700}
 .result{margin-top:22px}
 .card{background:#fff;border:2px solid #eadbcf;border-radius:24px;padding:26px;box-shadow:0 8px 20px rgba(80,55,35,.05)}
 .character-head{display:flex;align-items:center;gap:24px}
@@ -32,4 +35,17 @@ input{width:100px;text-align:center;font-size:34px;border:2px solid #dcc9b8;bord
 .word{padding:15px;background:#fff8ef;border-radius:16px;font-size:21px;font-weight:700}
 .example{padding:16px 18px;background:#f5f8e9;border-radius:16px;line-height:1.8}
 .note{margin-top:18px;color:#8c7b6d;font-size:14px}
-@media(max-width:600px){.hero{align-items:flex-start}.hero-icon{font-size:38px}.hero h1{font-size:27px}.search-row{flex-direction:column}.search-row input{width:100%}#analyzeBtn{height:50px}.big-char{font-size:68px}}
+.component-box{margin-top:20px;padding:20px;border-radius:20px;background:#f4f9ff;border:2px solid #d8eaf6}
+.component-title{font-size:24px;font-weight:800;margin:0 0 12px}
+.component-list{display:flex;gap:10px;flex-wrap:wrap}
+.component-char{font-size:28px;font-weight:800;background:#dff2ff;color:#23617c;padding:9px 15px;border-radius:14px}
+.lesson-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
+.lesson-card{background:#fffdf8;border:2px dashed #e5cdb7;border-radius:22px;padding:22px;min-height:340px;display:flex;flex-direction:column}
+.lesson-card .lesson-char{font-size:80px;text-align:center;line-height:1}
+.lesson-card h3{text-align:center;font-size:27px;margin:12px 0}
+.lesson-part{font-size:27px;font-weight:800;text-align:center;margin:5px 0 12px}
+.lesson-words{font-size:18px;line-height:1.8}
+.lesson-sentence{margin-top:auto;background:#f5f8e9;border-radius:14px;padding:12px;line-height:1.7}
+.cute{font-size:28px;text-align:center;margin-bottom:4px}
+@media(max-width:600px){.hero{align-items:flex-start}.hero-icon{font-size:38px}.hero h1{font-size:27px}.search-row{flex-direction:column}.search-row input{width:100%}#analyzeBtn{height:50px}.big-char{font-size:68px}.lesson-grid{grid-template-columns:1fr}}
+@media print{body{background:white}.hero,.search-card{display:none}.app{width:100%;margin:0}.result{margin:0}.lesson-grid{grid-template-columns:1fr}.lesson-card{break-after:page;min-height:92vh;box-shadow:none}.lesson-card:last-child{break-after:auto}.card{box-shadow:none;border:0}}
