@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生字拆解小老師</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="hero">
+      <div class="hero-icon">🧩</div>
+      <div>
+        <p class="eyebrow">教師備課小工具 · V1</p>
+        <h1>生字拆解小老師</h1>
+        <p>輸入一個生字，快速整理部件、注音、詞語與例句。</p>
+      </div>
+    </header>
+
+    <section class="search-card">
+      <label for="character">請輸入一個生字</label>
+      <div class="search-row">
+        <input id="character" maxlength="1" value="扭" aria-label="生字">
+        <button id="analyzeBtn">🔍 生字分析</button>
+      </div>
+      <div class="quick">
+        <span>試試看：</span>
+        <button class="quick-btn" data-char="扭">扭</button>
+        <button class="quick-btn" data-char="抱">抱</button>
+        <button class="quick-btn" data-char="拍">拍</button>
+        <button class="quick-btn" data-char="打">打</button>
+      </div>
+    </section>
+
+    <section id="result" class="result" aria-live="polite"></section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
