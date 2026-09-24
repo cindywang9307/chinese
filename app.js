@@ -196,13 +196,10 @@ function renderQuiz(){
      quizState.questions[quizState.idx].type="sound";
      return renderQuiz();
    }
-   q="這幾個字都有哪一個共同部件？";
-   answer=info.part;
-   opts=makeOptions(answer,[
-     ...info.family.flatMap(ch=>getData(ch)?.parts.map(p=>p[0])||[]),
-     ...item.pool.flatMap(ch=>getData(ch)?.parts.map(p=>p[0])||[])
-   ]);
-   questionVisual='<div class="common-family">'+info.family.join("　")+'</div><div class="common-hint">找一找：每一個字裡都有哪一個相同的部分？</div>';
+   q="看到這個共同部件，哪一個字屬於這一家？";
+   answer=info.answerChar;
+   opts=info.family;
+   questionVisual='<div class="common-part-question"><span class="common-part-label">共同部件</span><div class="common-part">'+escapeHtml(info.part)+'</div></div>';
  }
  quizState.answer=answer;quizState.answered=false;
  result.innerHTML='<div class="card"><div class="quiz-progress">📝 第 '+(quizState.idx+1)+' / '+quizState.questions.length+' 題　｜　目前 '+quizState.score+' 分</div>'+questionVisual+'<h2>'+q+'</h2><div class="quiz-options">'+opts.map(o=>'<button class="quiz-option" data-answer="'+encodeURIComponent(o)+'">'+escapeHtml(o)+'</button>').join("")+'</div><div class="quiz-tip">💡 小提醒：先觀察字形，再找出它們共同出現的部件。</div></div>';
@@ -211,17 +208,16 @@ function renderQuiz(){
 function findCommonPartQuestion(target,pool){
  const targetData=getData(target);
  if(!targetData)return null;
- const parts=[...new Set(targetData.parts.map(p=>p[0]).filter(Boolean))];
+ const candidates=[...new Set(pool)].filter(ch=>getData(ch));
  let best=null;
- for(const part of parts){
-   const family=[...new Set(pool)].filter(ch=>getData(ch)?.parts.some(p=>p[0]===part));
+ for(const part of [...new Set(targetData.parts.map(p=>p[0]).filter(Boolean))]){
+   const family=candidates.filter(ch=>getData(ch)?.parts.some(p=>p[0]===part));
    if(family.length>=3&&(!best||family.length>best.family.length)) best={part,family};
  }
  if(!best)return null;
- const family=best.family.includes(target)?best.family:best.family.concat(target);
- const chosen=shuffle(family);
- const visible=chosen.includes(target)?chosen:shuffle([target,...chosen]);
- return {part:best.part,family:visible.slice(0,4)};
+ const family=shuffle(best.family).slice(0,4);
+ const answerChar=family.includes(target)?target:family[0];
+ return {part:best.part,family,answerChar};
 }
 function makeOptions(answer,pool){const unique=[...new Set(pool.filter(x=>x&&x!==answer))];return shuffle([answer,...shuffle(unique).slice(0,3)])}
 function answerQuiz(v){
