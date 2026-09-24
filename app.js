@@ -10,6 +10,17 @@ const CUSTOM={
   "找":{zhuyin:"ㄓㄠˇ",words:["找到","找人","找錢"],sentence:"我在書包裡找到鉛筆。"},
   "拾":{zhuyin:"ㄕˊ",words:["拾起","拾回","拾荒"],sentence:"我把地上的紙屑拾起來。"}
 };
+
+// 教學用「選字填空」題庫：依詞義與語境選字，不考主要部件。
+const WORD_CHOICE_QUIZ=[
+  {blank:"___水",meaning:"乾淨的水",answer:"清",options:["清","情","晴","睛"]},
+  {blank:"___天",meaning:"沒有下雨、天空明亮",answer:"晴",options:["清","情","晴","睛"]},
+  {blank:"眼___",meaning:"眼睛",answer:"睛",options:["清","情","晴","睛"]},
+  {blank:"感___",meaning:"心裡的感受，例如感謝、感動",answer:"情",options:["清","情","晴","睛"]},
+  {blank:"___楚",meaning:"明白、知道得很清楚",answer:"清",options:["清","情","晴","睛"]},
+  {blank:"___朗",meaning:"天氣很好，沒有陰雨",answer:"晴",options:["清","情","晴","睛"]}
+];
+
 const input=document.querySelector("#character"),result=document.querySelector("#result");
 let DB={},dbReady=false,currentMode="single",quizState=null;
 const statusEl=(()=>{const e=document.createElement("div");e.id="dbStatus";e.className="db-status";document.querySelector(".search-card").prepend(e);return e})();
@@ -128,8 +139,8 @@ function lessonCard(c,d,i){
 function showQuizConfig(){
  currentMode="quiz-config";
  const chars=Object.keys(DB).filter(c=>getData(c));
- const demo=["扭","抱","拍","打","推","拉","找","拾"].filter(c=>DB[c]);
- result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>現在可以從<strong>'+chars.length.toLocaleString()+' 個資料庫漢字</strong>挑選測驗，不再只限原本 8 個字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option><option value="20">20 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">看字選注音</option><option value="reverseSound">看注音選字</option><option value="commonPart">共同部件</option><option value="word">詞語</option><option value="radical">部首</option></select></div></div><div class="range-box"><strong>🔎 搜尋要考的生字</strong><input id="quizCharSearch" class="quiz-search" placeholder="輸入漢字，例如：清、情、晴、請"><div class="range-list" id="quizCharList"></div><p class="note">點選字卡加入／取消。也可以搜尋資料庫中的其他漢字。</p></div><div class="selected-box"><strong>已選：<span id="selectedCount">0</span> 字</strong><div id="selectedChars" class="selected-chars"></div></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
+ const demo=["扭","抱","拍","打","推","拉","找","拾","清","情","晴","睛"].filter(c=>DB[c]);
+ result.innerHTML='<div class="card"><div class="cute">📝 🐰 ✏️</div><h2 class="quiz-config-title">老師出題模式</h2><p>現在可以從<strong>'+chars.length.toLocaleString()+' 個資料庫漢字</strong>挑選測驗，不再只限原本 8 個字。</p><div class="settings"><div class="setting"><label for="quizCount">題數</label><select id="quizCount"><option value="5">5 題</option><option value="10" selected>10 題</option><option value="15">15 題</option><option value="20">20 題</option></select></div><div class="setting"><label for="quizType">題型</label><select id="quizType"><option value="mixed" selected>混合</option><option value="sound">看字選注音</option><option value="reverseSound">看注音選字</option><option value="commonPart">共同部件</option><option value="word">選字填空</option><option value="radical">部首</option></select></div></div><div class="range-box"><strong>🔎 搜尋要考的生字</strong><input id="quizCharSearch" class="quiz-search" placeholder="輸入漢字，例如：清、情、晴、請"><div class="range-list" id="quizCharList"></div><p class="note">點選字卡加入／取消。也可以搜尋資料庫中的其他漢字。</p></div><div class="selected-box"><strong>已選：<span id="selectedCount">0</span> 字</strong><div id="selectedChars" class="selected-chars"></div></div><div class="check-row"><label><input type="checkbox" id="instantHint" checked> 答題後立即顯示正解</label><label><input type="checkbox" id="wrongReview" checked> 測驗後顯示錯題</label></div><div class="quiz-actions"><button class="quiz-btn" id="startConfiguredQuiz">🚀 開始測驗</button></div></div>';
  let selected=new Set(demo);
  const list=document.querySelector("#quizCharList"),search=document.querySelector("#quizCharSearch");
  function renderList(){
@@ -155,8 +166,13 @@ function startConfiguredQuiz(selectedOverride){
    alert("目前選到的生字中，找不到至少 3 個共享同一部件的字。請再選幾個有共同部件的字，例如：清、情、晴、睛。");
    return;
  }
+ const wordPool=WORD_CHOICE_QUIZ.filter(q=>q.options.some(c=>selected.includes(c)));
+ if(type==="word"&&!wordPool.length){
+   alert("請選入有選字填空題庫的生字，例如：清、情、晴、睛。");
+   return;
+ }
  const chars=shuffle(type==="commonPart"?eligibleCommon:selected),questions=[];
- const mixedTypes=["sound","reverseSound","commonPart","word","radical"];
+ const mixedTypes=["sound","reverseSound","word","radical","commonPart"];
  for(let i=0;i<count;i++){
    let qType=type==="mixed"?mixedTypes[i%mixedTypes.length]:type;
    let pool=selected;
@@ -167,7 +183,12 @@ function startConfiguredQuiz(selectedOverride){
      if(chosen) questions.push({char:chosen,type:qType,pool:commonPool});
      else qType="sound";
    }
-   if(qType!=="commonPart") questions.push({char:chars[i%chars.length],type:qType,pool});
+   if(qType==="word"){
+     const bankItem=wordPool[i%wordPool.length];
+     questions.push({char:bankItem.answer,type:qType,pool:selected,wordQuiz:bankItem});
+   }else if(qType!=="commonPart"){
+     questions.push({char:chars[i%chars.length],type:qType,pool});
+   }
  }
  quizState={questions,idx:0,score:0,answered:false,instantHint:document.querySelector("#instantHint").checked,wrongReview:document.querySelector("#wrongReview").checked,wrong:[]};
  renderQuiz();
@@ -183,9 +204,12 @@ function renderQuiz(){
    opts=makeOptions(answer,Object.keys(DB).filter(x=>getData(x)&&getData(x).zhuyin===d.zhuyin));
    questionVisual='<div class="quiz-zhuyin">'+escapeHtml(d.zhuyin)+'</div>';
  }else if(type==="word"){
-   q="哪一個是「"+c+"」的詞語？"; answer=d.words[0]||d.definition;
-   opts=makeOptions(answer,Object.values(CUSTOM).flatMap(x=>x.words||[]));
-   questionVisual='<div class="quiz-char">'+c+'</div>';
+   const itemQuiz=quizState.questions[quizState.idx].wordQuiz;
+   if(!itemQuiz){ quizState.questions[quizState.idx].type="sound"; return renderQuiz(); }
+   q="請選出最適合的字";
+   answer=itemQuiz.answer;
+   opts=shuffle(itemQuiz.options);
+   questionVisual='<div class="fill-blank">'+escapeHtml(itemQuiz.blank)+'</div><div class="word-meaning">意思：'+escapeHtml(itemQuiz.meaning)+'</div>';
  }else if(type==="radical"){
    q="「"+c+"」的部首是哪一個？"; answer=d.radical;
    opts=makeOptions(answer,Object.values(DB).map(x=>x.radical).filter(Boolean));
