@@ -1,5 +1,6 @@
-// V5：大型漢字資料庫 + 自動部件分析
-const DATA_URL="https://raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt";
+// V6：教育部《國語小字典》資料 + 部件分析
+const DATA_URL="https://raw.githubusercontent.com/kemdict/kemdict-data-ministry-of-education/main/dict_mini.json";
+const COMPONENT_URL="https://raw.githubusercontent.com/skishore/makemeahanzi/master/dictionary.txt";
 const CUSTOM={
   "扭":{zhuyin:"ㄋㄧㄡˇ",words:["扭毛巾","扭傷","扭動"],sentence:"我用力把毛巾扭乾。"},
   "抱":{zhuyin:"ㄅㄠˋ",words:["抱住","擁抱","抱歉"],sentence:"妹妹開心地抱住媽媽。"},
@@ -10,16 +11,6 @@ const CUSTOM={
   "找":{zhuyin:"ㄓㄠˇ",words:["找到","找人","找錢"],sentence:"我在書包裡找到鉛筆。"},
   "拾":{zhuyin:"ㄕˊ",words:["拾起","拾回","拾荒"],sentence:"我把地上的紙屑拾起來。"}
 };
-
-// 教學用「選字填空」題庫：依詞義與語境選字，不考主要部件。
-const WORD_CHOICE_QUIZ=[
-  {blank:"___水",meaning:"乾淨的水",answer:"清",options:["清","情","晴","睛"]},
-  {blank:"___天",meaning:"沒有下雨、天空明亮",answer:"晴",options:["清","情","晴","睛"]},
-  {blank:"眼___",meaning:"眼睛",answer:"睛",options:["清","情","晴","睛"]},
-  {blank:"感___",meaning:"心裡的感受，例如感謝、感動",answer:"情",options:["清","情","晴","睛"]},
-  {blank:"___楚",meaning:"明白、知道得很清楚",answer:"清",options:["清","情","晴","睛"]},
-  {blank:"___朗",meaning:"天氣很好，沒有陰雨",answer:"晴",options:["清","情","晴","睛"]}
-];
 
 const input=document.querySelector("#character"),result=document.querySelector("#result");
 let DB={},dbReady=false,currentMode="single",quizState=null;
@@ -35,52 +26,44 @@ document.querySelector("#quizBtn").addEventListener("click",showQuizConfig);
 document.querySelector("#printBtn").addEventListener("click",()=>{if(currentMode!=="lesson")showLesson();setTimeout(()=>window.print(),50)});
 
 async function initDatabase(){
-  statusEl.textContent="⏳ 正在載入大型漢字資料庫……第一次開啟可能需要幾秒鐘";
+  statusEl.textContent="⏳ 正在載入教育部《國語小字典》資料……";
   try{
-    const cached=localStorage.getItem("hanziDictionaryV5");
+    const cacheKey="moeMiniDictionary_2019_20260626";
+    const cached=localStorage.getItem(cacheKey);
     if(cached) DB=JSON.parse(cached);
     if(!Object.keys(DB).length){
       const res=await fetch(DATA_URL);
-      if(!res.ok) throw new Error("database fetch failed");
-      const text=await res.text();
-      text.split("\n").forEach(line=>{
-        if(!line.trim()) return;
-        try{
-          const d=JSON.parse(line);
-          if(d.character) DB[d.character]=d;
-        }catch(_){}
+      if(!res.ok) throw new Error("MOE dictionary fetch failed");
+      const rows=await res.json(), normalized={};
+      rows.forEach(row=>{
+        const c=row.id;if(!c||c.length!==1)return;
+        const e=normalized[c]||{zhuyin:[],radical:row.title||"",strokes:Number(row.stroke_count)||0,words:[],definitions:[]};
+        const z=row.non_radical_stroke_count||"";
+        if(z&&!e.zhuyin.includes(z))e.zhuyin.push(z);
+        if(row.bopomofo&&!e.definitions.includes(row.bopomofo))e.definitions.push(row.bopomofo);
+        extractMoeExampleWords(row.bopomofo||"",c).forEach(w=>{if(!e.words.includes(w))e.words.push(w)});
+        normalized[c]=e;
       });
-      try{localStorage.setItem("hanziDictionaryV5",JSON.stringify(DB))}catch(_){}
+      DB=normalized;try{localStorage.setItem(cacheKey,JSON.stringify(DB))}catch(_){}
     }
     dbReady=true;
-    statusEl.innerHTML="🟢 已載入約 <strong>"+Object.keys(DB).length.toLocaleString()+"</strong> 個漢字資料｜現在可以直接輸入資料庫中的生字";
+    statusEl.innerHTML="🟢 已載入教育部《國語小字典》約 <strong>"+Object.keys(DB).length.toLocaleString()+"</strong> 個字｜版本 2019_20260626";
     analyze();
-  }catch(err){
-    statusEl.textContent="⚠️ 大型資料庫暫時無法載入，仍可使用內建 8 個示範字。";
-    dbReady=false; analyze();
-  }
+  }catch(err){console.error(err);statusEl.textContent="⚠️ 教育部字典資料載入失敗，請重新整理頁面。";dbReady=false;analyze();}
+}
+function extractMoeExampleWords(text,char){
+  const result=[];[...String(text).matchAll(/「([^」]+)」/g)].forEach(m=>{const w=cleanMoeText(m[1]);if(w.includes(char)&&w.length>=2&&w.length<=8&&!result.includes(w))result.push(w)});return result.slice(0,30);
+}
+function cleanMoeText(text){
+  return String(text).replace(/([\u3400-\u9fff])[ㄅ-ㆿ˙]+&&/g,"$1").replace(/([\u3400-\u9fff])&&/g,"$1").replace(/[^\u3400-\u9fff]/g,"");
 }
 
 function getData(c){
-  const d=DB[c];
-  if(!d) return null;
-  const custom=CUSTOM[c]||{};
-  const decomposition=d.decomposition||"";
-  const rawParts=parseTopLevel(decomposition);
-  return {
-    zhuyin:custom.zhuyin||toZhuyin((d.pinyin||[])[0]||""),
-    pinyin:(d.pinyin||[]).join("、"),
-    radical:d.radical||"",
-    strokes:Array.isArray(d.strokes)?d.strokes.length:(d.strokes||0),
-    parts:rawParts.map((p,i)=>[normalizePart(p),i===0?"color-1":"color-2"]),
-    componentParts:parseDirectParts(decomposition).map(normalizePart),
-    words:custom.words||[],
-    sentence:custom.sentence||"",
-    definition:d.definition||"",
-    decomposition,
-    source:"Make Me a Hanzi；教育部國語小字典作為台灣教材核對來源"
-  };
+  const d=DB[c];if(!d)return null;const custom=CUSTOM[c]||{},decomposition=d.decomposition||"",rawParts=parseTopLevel(decomposition);
+  const words=[...(d.words||[]),...(custom.words||[])].filter((w,i,a)=>w&&a.indexOf(w)===i);
+  return {zhuyin:custom.zhuyin||(d.zhuyin||[]).join("、"),pinyin:"",radical:d.radical||"",strokes:d.strokes||0,parts:rawParts.map((p,i)=>[normalizePart(p),i===0?"color-1":"color-2"]),componentParts:(d.componentParts&&d.componentParts.length?d.componentParts:parseDirectParts(decomposition).map(normalizePart)),words,sentence:custom.sentence||"",definition:cleanMoeText((d.definitions||[])[0]||""),decomposition,source:"中華民國教育部《國語小字典》（版本 2019_20260626）"};
 }
+
 function normalizePart(p){
   const map={"⺅":"亻","⺡":"氵","⺘":"扌","⻌":"辶","⻖":"阝","⺾":"艹","⺮":"竹","⻊":"足","⺹":"老","⺼":"月"};
   return map[p]||p;
@@ -208,9 +191,9 @@ function startConfiguredQuiz(selectedOverride){
    alert("目前選到的生字中，找不到至少 3 個共享同一部件的字。請再選幾個有共同部件的字，例如：清、情、晴、睛。");
    return;
  }
- const wordPool=WORD_CHOICE_QUIZ.filter(q=>q.options.some(c=>selected.includes(c)));
+ const wordPool=selected.filter(c=>(getData(c)?.words||[]).length>0);
  if(type==="word"&&!wordPool.length){
-   alert("請選入有選字填空題庫的生字，例如：清、情、晴、睛。");
+   alert("你選的字目前沒有教育部《國語小字典》的例詞資料，因此不能出「選字填空」。請換選有例詞的字。");
    return;
  }
  const chars=shuffle(type==="commonPart"?eligibleCommon:selected),questions=[];
@@ -226,8 +209,9 @@ function startConfiguredQuiz(selectedOverride){
      else qType="sound";
    }
    if(qType==="word"){
-     const bankItem=wordPool[i%wordPool.length];
-     questions.push({char:bankItem.answer,type:qType,pool:selected,wordQuiz:bankItem});
+     const answerChar=wordPool[i%wordPool.length];
+     const wordQuiz=buildWordChoiceQuestion(answerChar,selected);
+     questions.push(wordQuiz?{char:answerChar,type:qType,pool:selected,wordQuiz}:{char:answerChar,type:"sound",pool:selected});
    }else if(qType!=="commonPart"){
      questions.push({char:chars[i%chars.length],type:qType,pool});
    }
@@ -249,10 +233,7 @@ function renderQuiz(){
  }else if(type==="word"){
    const itemQuiz=quizState.questions[quizState.idx].wordQuiz;
    if(!itemQuiz){ quizState.questions[quizState.idx].type="sound"; return renderQuiz(); }
-   q="請選出最適合的字";
-   answer=itemQuiz.answer;
-   const family=getWordChoiceFamily(answer,itemQuiz);
-   opts=shuffle(family);
+   q="請選出最適合的字";answer=itemQuiz.answer;opts=shuffle(itemQuiz.options);
    questionVisual='<div class="fill-blank">'+escapeHtml(itemQuiz.blank)+'</div><div class="word-meaning">意思：'+escapeHtml(itemQuiz.meaning)+'</div><div class="common-family-note">同一組字一起辨認</div>';
  }else if(type==="radical"){
    q="「"+c+"」的部首是哪一個？"; answer=d.radical;
@@ -273,22 +254,20 @@ function renderQuiz(){
  result.innerHTML='<div class="card"><div class="quiz-progress">📝 第 '+(quizState.idx+1)+' / '+quizState.questions.length+' 題　｜　目前 '+quizState.score+' 分</div>'+questionVisual+'<h2>'+q+'</h2><div class="quiz-options">'+opts.map(o=>'<button class="quiz-option" data-answer="'+encodeURIComponent(o)+'">'+escapeHtml(o)+'</button>').join("")+'</div><div class="quiz-tip">💡 小提醒：先觀察字形，再找出它們共同出現的部件。</div></div>';
  document.querySelectorAll(".quiz-option").forEach(b=>b.addEventListener("click",()=>answerQuiz(decodeURIComponent(b.dataset.answer))));
 }
-function getWordChoiceFamily(answer,itemQuiz){
-  // 優先從同一共同部件家族找四個字，避免出現完全不同部件的干擾字。
-  const d=getData(answer);
-  const parts=(d?.componentParts&&d.componentParts.length?d.componentParts:d?.parts?.map(p=>p[0])||[]);
-  for(const part of parts){
-    const family=Object.keys(DB).filter(ch=>{
-      const q=getData(ch);
-      const hasPart=q&&((q.componentParts&&q.componentParts.includes(part))||q.parts.some(p=>p[0]===part));
-      const hasWord=WORD_CHOICE_QUIZ.some(x=>x.answer===ch);
-      return hasPart&&hasWord;
-    });
-    if(family.length>=4){
-      return family.slice(0,4);
-    }
-  }
-  return itemQuiz.options;
+function buildWordChoiceQuestion(answer,selected){
+ const d=getData(answer);if(!d||!d.words.length)return null;
+ const word=d.words.find(w=>w.length>=2&&w.length<=6)||d.words[0];
+ const stem=word.startsWith(answer)?"___"+word.slice(answer.length):word.replace(answer,"___");
+ const family=findCommonFamily(answer,selected),options=family.filter(ch=>getData(ch)?.words?.length).slice(0,4);
+ if(!options.includes(answer))options.unshift(answer);
+ while(options.length<4){const extra=selected.find(ch=>ch!==answer&&getData(ch)?.words?.length&&!options.includes(ch));if(!extra)break;options.push(extra)}
+ if(options.length<4)return null;
+ return {blank:stem,meaning:d.definition||"請依照詞語判斷正確的字",answer,options};
+}
+function findCommonFamily(target,selected){
+ const d=getData(target),parts=(d?.componentParts?.length?d.componentParts:d?.parts?.map(p=>p[0])||[]);let best=[];
+ for(const part of parts){const family=selected.filter(ch=>{const q=getData(ch);return q&&((q.componentParts||[]).includes(part)||q.parts.some(p=>p[0]===part))});if(family.length>best.length)best=family}
+ return best.length>=4?shuffle(best):best;
 }
 function findCommonPartQuestion(target,pool){
  const targetData=getData(target);
