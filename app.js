@@ -60,13 +60,13 @@ function getData(c){
     zhuyin:custom.zhuyin||toZhuyin((d.pinyin||[])[0]||""),
     pinyin:(d.pinyin||[]).join("、"),
     radical:d.radical||"",
-    strokes:Array.isArray(d.matches)?d.matches.length:0,
+    strokes:Array.isArray(d.strokes)?d.strokes.length:(d.strokes||0),
     parts:rawParts.map((p,i)=>[normalizePart(p),i===0?"color-1":"color-2"]),
     words:custom.words||[],
     sentence:custom.sentence||"",
     definition:d.definition||"",
     decomposition,
-    source:"Make Me a Hanzi"
+    source:"Make Me a Hanzi；教育部國語小字典作為台灣教材核對來源"
   };
 }
 function normalizePart(p){
@@ -87,9 +87,11 @@ function parseTopLevel(s){
     return {op:ch,children};
   }
   const tree=parse();
-  return tree&&tree.children?tree.children.map(x=>typeof x==="string"?x:firstLeaf(x)):typeof tree==="string"?[tree]:[];
+  return tree&&tree.children?tree.children.flatMap(x=>leafParts(x)):typeof tree==="string"?[tree]:[];
 }
-function firstLeaf(x){return x&&x.children?firstLeaf(x.children[0]):x}
+function leafParts(x){
+  return x&&x.children?x.children.flatMap(leafParts):[x];
+}
 function analyze(){
   currentMode="single";
   const c=input.value.trim().slice(0,1);
@@ -102,7 +104,7 @@ function singleCard(c,d){
   const parts=d.parts.length?partsHtml(d.parts):'<span class="note">這個字的公開資料沒有可可靠拆出的部件。</span>';
   const words=d.words.length?'<div class="words">'+d.words.map(w=>'<div class="word">'+escapeHtml(w)+'</div>').join("")+'</div>':'<div class="example">📖 字典釋義：'+escapeHtml(d.definition||"目前沒有釋義資料")+'</div>';
   const sentence=d.sentence?'<div class="example">💬 '+escapeHtml(d.sentence)+'</div>':'<div class="note">這個字目前沒有內建教學例句；教師示範字可加入自訂例句。</div>';
-  return '<div class="card"><div class="character-head"><div class="big-char">'+c+'</div><div class="info"><h2>'+c+'</h2><div class="badges"><span class="badge">🔊 '+escapeHtml(d.zhuyin||"未提供")+'</span><span class="badge">拼音：'+escapeHtml(d.pinyin||"未提供")+'</span><span class="badge">部首：'+escapeHtml(d.radical||"未提供")+'</span><span class="badge">筆畫：'+(d.strokes||"未提供")+'</span></div></div></div><div class="section"><h3>🧩 自動部件分析</h3><div class="parts">'+parts+'</div><p class="note">部件來自公開漢字字形分解資料，不是靠猜字形。</p></div><div class="section"><h3>📝 常用詞語／字義</h3>'+words+'</div><div class="section"><h3>💬 教學例句</h3>'+sentence+'</div></div>'
+  return '<div class="card"><div class="character-head"><div class="big-char">'+c+'</div><div class="info"><h2>'+c+'</h2><div class="badges"><span class="badge">🔊 '+escapeHtml(d.zhuyin||"未提供")+'</span><span class="badge">拼音：'+escapeHtml(d.pinyin||"未提供")+'</span><span class="badge">部首：'+escapeHtml(d.radical||"未提供")+'</span><span class="badge">筆畫：'+(d.strokes||"未提供")+'</span></div></div></div><div class="section"><h3>🧩 自動部件分析</h3><div class="parts">'+parts+'</div><p class="note">部件來自公開漢字字形分解資料，不是靠猜字形。注音、部首與筆畫若需台灣教材核對，建議搭配教育部國語小字典。</p><a class="dict-link" href="https://dict.mini.moe.edu.tw/" target="_blank" rel="noopener">📖 開啟教育部國語小字典</a></div><div class="section"><h3>📝 常用詞語／字義</h3>'+words+'</div><div class="section"><h3>💬 教學例句</h3>'+sentence+'</div></div>'
 }
 function partsHtml(p){return p.map((x,i)=>'<span class="part '+x[1]+'">'+escapeHtml(x[0])+'</span>'+(i<p.length-1?'<span class="plus">＋</span>':"")).join("")}
 
