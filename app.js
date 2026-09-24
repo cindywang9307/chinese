@@ -202,7 +202,11 @@ function showQuizConfig(){
    document.querySelector("#selectedChars").innerHTML=[...selected].map(c=>'<span class="selected-char">'+c+'</span>').join("");
  }
  search.addEventListener("input",renderList);
+ search.addEventListener("change",renderList);
+ search.addEventListener("keyup",renderList);
  renderList();renderSelected();
+ // 防止瀏覽器自動填入搜尋文字但沒有觸發 input 事件。
+ setTimeout(renderList,50);
  const clearBtn=document.querySelector("#clearQuizSelection");
  if(clearBtn) clearBtn.addEventListener("click",()=>{selected.clear();quizSelection.clear();renderList();renderSelected()});
  document.querySelector("#startConfiguredQuiz").addEventListener("click",()=>startConfiguredQuiz([...selected]));
