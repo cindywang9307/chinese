@@ -182,8 +182,19 @@ function showQuizConfig(){
  const list=document.querySelector("#quizCharList"),search=document.querySelector("#quizCharSearch");
  function renderList(){
    const q=search.value.trim();
-   const pool=chars.filter(c=>!q||c.includes(q)).slice(0,120);
-   list.innerHTML=pool.map(c=>'<button class="range-btn '+(selected.has(c)?"active":"")+'" data-range="'+c+'">'+c+'</button>').join("")+(pool.length===120?'<div class="note">顯示前 120 個結果，請縮小搜尋範圍。</div>':"");
+   const normalizedQ=q.normalize("NFC");
+   let pool=q
+     ? chars.filter(c=>c===normalizedQ||c.normalize("NFC")===normalizedQ||c.includes(normalizedQ)).slice(0,120)
+     : [];
+   if(q&&pool.length===0){
+     list.innerHTML='<div class="note">找不到「'+escapeHtml(q)+'」。請確認這個字已載入資料庫。</div>';
+     return;
+   }
+   if(!q){
+     list.innerHTML='<div class="note">請輸入一個漢字，例如「清」，再從搜尋結果加入測驗。</div>';
+     return;
+   }
+   list.innerHTML='<div class="quiz-search-result-label">搜尋結果</div>'+pool.map(c=>'<button class="range-btn '+(selected.has(c)?"active":"")+'" data-range="'+c+'">'+c+'</button>').join("")+(pool.length===120?'<div class="note">顯示前 120 個結果，請縮小搜尋範圍。</div>':"");
    list.querySelectorAll(".range-btn").forEach(b=>b.addEventListener("click",()=>{const c=b.dataset.range;if(selected.has(c))selected.delete(c);else selected.add(c);renderList();renderSelected()}));
  }
  function renderSelected(){
