@@ -120,13 +120,28 @@ function singleCard(c,d){
 function partsHtml(p){return p.map((x,i)=>'<span class="part '+x[1]+'">'+escapeHtml(x[0])+'</span>'+(i<p.length-1?'<span class="plus">＋</span>':"")).join("")}
 
 function showComponent(){
-  currentMode="component";const c=input.value.trim().slice(0,1),d=getData(c);
+  currentMode="component";
+  const c=input.value.trim().slice(0,1),d=getData(c);
   if(!d){result.innerHTML='<div class="card">請先輸入資料庫已有的生字，再找相同部件喔！🌱</div>';return}
-  const target=d.parts.map(p=>p[0]).filter(Boolean)[0];
-  if(!target){result.innerHTML='<div class="card">這個字目前沒有可比較的主要部件。</div>';return}
-  const chars=Object.keys(DB).filter(x=>{const q=getData(x);return q&&q.parts.some(p=>p[0]===target)}).slice(0,120);
-  result.innerHTML='<div class="card"><div class="cute">🎨 🧩 🌱</div><h2>「'+escapeHtml(target)+'」共同部件小家族</h2><p>「'+escapeHtml(c)+'」的主要共同部件：<strong>'+escapeHtml(target)+'</strong></p><div class="component-box"><p class="component-title">資料庫中找到 '+chars.length+' 個相關字</p><div class="component-list">'+chars.map(x=>'<button class="component-char jump-char" data-char="'+x+'">'+x+'</button>').join("")+'</div></div><p class="note">顯示前 120 個結果，避免畫面太擁擠。</p></div>';
-  document.querySelectorAll(".jump-char").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.char;analyze()}));
+  const components=[...new Set(d.parts.map(p=>p[0]).filter(Boolean))];
+  if(!components.length){result.innerHTML='<div class="card">這個字目前沒有可比較的部件。</div>';return}
+
+  const renderFamily=(target)=>{
+    const chars=Object.keys(DB).filter(x=>{
+      const q=getData(x);
+      return q&&q.parts.some(p=>p[0]===target);
+    }).slice(0,120);
+    result.innerHTML='<div class="card"><div class="cute">🎨 🧩 🌱</div><h2>「'+escapeHtml(c)+'」共同部件小家族</h2>'+
+      '<p>你可以選擇<strong>任一個部件</strong>來找共同部件，不只第一個部件。</p>'+
+      '<div class="component-pick"><p class="component-title">請選要找的共同部件：</p>'+
+      components.map(p=>'<button class="component-pick-btn '+(p===target?'active':'')+'" data-part="'+encodeURIComponent(p)+'">'+escapeHtml(p)+'</button>').join("")+
+      '</div><div class="component-box"><p class="component-title">「'+escapeHtml(target)+'」共同部件｜資料庫中找到 '+chars.length+' 個相關字</p>'+
+      '<div class="component-list">'+chars.map(x=>'<button class="component-char jump-char" data-char="'+x+'">'+x+'</button>').join("")+'</div></div>'+
+      '<p class="note">顯示前 120 個結果。選「日」就找含日的字；選「月」就找含月的字。</p></div>';
+    document.querySelectorAll(".component-pick-btn").forEach(b=>b.addEventListener("click",()=>renderFamily(decodeURIComponent(b.dataset.part))));
+    document.querySelectorAll(".jump-char").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.char;analyze()}));
+  };
+  renderFamily(components[0]);
 }
 function showLesson(){
   currentMode="lesson";const chars=["扭","抱","拍","打","推","拉","找","拾"].filter(c=>getData(c));
