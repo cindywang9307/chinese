@@ -1,61 +1,31 @@
 const DATA={
-  "扭":{zhuyin:"ㄋㄧㄡˇ",radical:"手",strokes:7,parts:[["扌","color-1"],["丑","color-2"]],words:["扭毛巾","扭傷","扭動"],sentence:"我用力把毛巾扭乾。"},
-  "抱":{zhuyin:"ㄅㄠˋ",radical:"手",strokes:8,parts:[["扌","color-1"],["包","color-2"]],words:["抱住","擁抱","抱歉"],sentence:"妹妹開心地抱住媽媽。"},
-  "拍":{zhuyin:"ㄆㄞ",radical:"手",strokes:8,parts:[["扌","color-1"],["白","color-2"]],words:["拍手","拍照","拍球"],sentence:"大家一起拍手歡迎老師。"},
-  "打":{zhuyin:"ㄉㄚˇ",radical:"手",strokes:5,parts:[["扌","color-1"],["丁","color-2"]],words:["打球","打開","打電話"],sentence:"下課時，我和同學一起打球。"},
-  "推":{zhuyin:"ㄊㄨㄟ",radical:"手",strokes:11,parts:[["扌","color-1"],["隹","color-2"]],words:["推開","推車","推動"],sentence:"我和同學一起推開門。"},
-  "拉":{zhuyin:"ㄌㄚ",radical:"手",strokes:8,parts:[["扌","color-1"],["立","color-2"]],words:["拉手","拉開","拉門"],sentence:"妹妹拉著媽媽的手。"},
-  "找":{zhuyin:"ㄓㄠˇ",radical:"手",strokes:7,parts:[["扌","color-1"],["戈","color-2"]],words:["找到","找人","找錢"],sentence:"我在書包裡找到鉛筆。"},
-  "拾":{zhuyin:"ㄕˊ",radical:"手",strokes:9,parts:[["扌","color-1"],["合","color-2"]],words:["拾起","拾回","拾荒"],sentence:"我把地上的紙屑拾起來。"}
+"扭":{zhuyin:"ㄋㄧㄡˇ",radical:"手",strokes:7,parts:[["扌","color-1"],["丑","color-2"]],words:["扭毛巾","扭傷","扭動"],sentence:"我用力把毛巾扭乾。"},
+"抱":{zhuyin:"ㄅㄠˋ",radical:"手",strokes:8,parts:[["扌","color-1"],["包","color-2"]],words:["抱住","擁抱","抱歉"],sentence:"妹妹開心地抱住媽媽。"},
+"拍":{zhuyin:"ㄆㄞ",radical:"手",strokes:8,parts:[["扌","color-1"],["白","color-2"]],words:["拍手","拍照","拍球"],sentence:"大家一起拍手歡迎老師。"},
+"打":{zhuyin:"ㄉㄚˇ",radical:"手",strokes:5,parts:[["扌","color-1"],["丁","color-2"]],words:["打球","打開","打電話"],sentence:"下課時，我和同學一起打球。"},
+"推":{zhuyin:"ㄊㄨㄟ",radical:"手",strokes:11,parts:[["扌","color-1"],["隹","color-2"]],words:["推開","推車","推動"],sentence:"我和同學一起推開門。"},
+"拉":{zhuyin:"ㄌㄚ",radical:"手",strokes:8,parts:[["扌","color-1"],["立","color-2"]],words:["拉手","拉開","拉門"],sentence:"妹妹拉著媽媽的手。"},
+"找":{zhuyin:"ㄓㄠˇ",radical:"手",strokes:7,parts:[["扌","color-1"],["戈","color-2"]],words:["找到","找人","找錢"],sentence:"我在書包裡找到鉛筆。"},
+"拾":{zhuyin:"ㄕˊ",radical:"手",strokes:9,parts:[["扌","color-1"],["合","color-2"]],words:["拾起","拾回","拾荒"],sentence:"我把地上的紙屑拾起來。"}
 };
-
-const input=document.querySelector("#character");
-const result=document.querySelector("#result");
-let currentMode="single";
+const input=document.querySelector("#character"),result=document.querySelector("#result");let currentMode="single",quizState=null;
 document.querySelector("#analyzeBtn").addEventListener("click",analyze);
-document.querySelectorAll(".quick-btn").forEach(btn=>btn.addEventListener("click",()=>{input.value=btn.dataset.char;currentMode="single";analyze()}));
+document.querySelectorAll(".quick-btn").forEach(b=>b.addEventListener("click",()=>{input.value=b.dataset.char;analyze()}));
 input.addEventListener("keydown",e=>{if(e.key==="Enter")analyze()});
 document.querySelector("#componentBtn").addEventListener("click",showComponent);
 document.querySelector("#lessonBtn").addEventListener("click",showLesson);
+document.querySelector("#quizBtn").addEventListener("click",startQuiz);
 document.querySelector("#printBtn").addEventListener("click",()=>{if(currentMode!=="lesson")showLesson();setTimeout(()=>window.print(),50)});
-
-function analyze(){
-  currentMode="single";
-  const char=input.value.trim().slice(0,1);
-  if(!char){result.innerHTML='<div class="card">請先輸入一個生字喔！🌱</div>';return}
-  const d=DATA[char];
-  if(!d){
-    result.innerHTML='<div class="card"><div class="character-head"><div class="big-char">'+escapeHtml(char)+'</div><div><h2>這個生字的資料還在準備中 🌱</h2><p>V2 目前收錄：扭、抱、拍、打、推、拉、找、拾。</p></div></div><p class="note">可以在下一版繼續擴充資料庫。</p></div>';
-    return;
-  }
-  result.innerHTML=singleCard(char,d);
-}
-
-function singleCard(char,d){
-  return '<div class="card"><div class="character-head"><div class="big-char">'+char+'</div><div class="info"><h2>'+char+'</h2><div class="badges"><span class="badge">🔊 '+d.zhuyin+'</span><span class="badge">部首：'+d.radical+'</span><span class="badge">筆畫：'+d.strokes+'</span></div></div></div><div class="section"><h3>🧩 部件拆解</h3><div class="parts">'+partsHtml(d.parts)+'</div><p class="note">共同部件會使用相同顏色，例如「扌」在不同生字中都標示為藍色。</p></div><div class="section"><h3>📝 常用詞語</h3><div class="words">'+d.words.map(w=>'<div class="word">'+w+'</div>').join("")+'</div></div><div class="section"><h3>💬 例句</h3><div class="example">'+d.sentence+'</div></div></div>';
-}
-
-function partsHtml(parts){return parts.map((p,i)=>'<span class="part '+p[1]+'">'+p[0]+'</span>'+(i<parts.length-1?'<span class="plus">＋</span>':"")).join("")}
-
-function showComponent(){
-  currentMode="component";
-  const char=input.value.trim().slice(0,1);
-  const d=DATA[char];
-  if(!d){result.innerHTML='<div class="card">請先輸入 V2 已收錄的生字，再找相同部件喔！🌱</div>';return}
-  const shared=d.parts[0][0];
-  const chars=Object.keys(DATA).filter(c=>DATA[c].parts.some(p=>p[0]===shared));
-  result.innerHTML='<div class="card"><div class="cute">🎨 🧩 🌱</div><h2>「'+shared+'」共同部件小家族</h2><p>你正在查看「'+char+'」的共同部件：<strong>'+shared+'</strong>。</p><div class="component-box"><p class="component-title">同樣有「'+shared+'」的生字</p><div class="component-list">'+chars.map(c=>'<span class="component-char">'+c+'</span>').join("")+'</div></div><p class="note">教學小提醒：可以請學生先找出相同部件，再比較另一個部件有什麼不同。</p></div>';
-}
-
-function showLesson(){
-  currentMode="lesson";
-  const chars=Object.keys(DATA);
-  result.innerHTML='<div class="card"><div class="cute">📚 🐰 ✏️</div><h2>教材模式｜一字一頁</h2><p>每個生字都是一張獨立教材卡，適合直接列印或投影。</p><div class="lesson-grid">'+chars.map((char,i)=>lessonCard(char,DATA[char],i)).join("")+'</div></div>';
-}
-
-function lessonCard(char,d,i){
-  return '<article class="lesson-card"><div class="cute">'+["🌱","🐰","⭐","🍀"][i%4]+'</div><div class="lesson-char">'+char+'</div><h3>'+char+'｜'+d.zhuyin+'</h3><div class="lesson-part">'+partsHtml(d.parts)+'</div><div class="lesson-words"><strong>詞語：</strong>'+d.words.join("、")+'<br><strong>部首：</strong>'+d.radical+'　<strong>筆畫：</strong>'+d.strokes+'</div><div class="lesson-sentence">💬 '+d.sentence+'</div></article>';
-}
-
+function analyze(){currentMode="single";const c=input.value.trim().slice(0,1),d=DATA[c];if(!c){result.innerHTML='<div class="card">請先輸入一個生字喔！🌱</div>';return}if(!d){result.innerHTML='<div class="card"><div class="character-head"><div class="big-char">'+escapeHtml(c)+'</div><div><h2>這個生字的資料還在準備中 🌱</h2><p>目前收錄：扭、抱、拍、打、推、拉、找、拾。</p></div></div></div>';return}result.innerHTML=singleCard(c,d)}
+function singleCard(c,d){return '<div class="card"><div class="character-head"><div class="big-char">'+c+'</div><div class="info"><h2>'+c+'</h2><div class="badges"><span class="badge">🔊 '+d.zhuyin+'</span><span class="badge">部首：'+d.radical+'</span><span class="badge">筆畫：'+d.strokes+'</span></div></div></div><div class="section"><h3>🧩 部件拆解</h3><div class="parts">'+partsHtml(d.parts)+'</div></div><div class="section"><h3>📝 常用詞語</h3><div class="words">'+d.words.map(w=>'<div class="word">'+w+'</div>').join("")+'</div></div><div class="section"><h3>💬 例句</h3><div class="example">'+d.sentence+'</div></div></div>'}
+function partsHtml(p){return p.map((x,i)=>'<span class="part '+x[1]+'">'+x[0]+'</span>'+(i<p.length-1?'<span class="plus">＋</span>':"")).join("")}
+function showComponent(){currentMode="component";const c=input.value.trim().slice(0,1),d=DATA[c];if(!d){result.innerHTML='<div class="card">請先輸入已收錄的生字，再找相同部件喔！🌱</div>';return}const s=d.parts[0][0],chars=Object.keys(DATA).filter(x=>DATA[x].parts.some(p=>p[0]===s));result.innerHTML='<div class="card"><div class="cute">🎨 🧩 🌱</div><h2>「'+s+'」共同部件小家族</h2><p>「'+c+'」的共同部件：<strong>'+s+'</strong></p><div class="component-box"><p class="component-title">同樣有「'+s+'」的生字</p><div class="component-list">'+chars.map(x=>'<span class="component-char">'+x+'</span>').join("")+'</div></div></div>'}
+function showLesson(){currentMode="lesson";const chars=Object.keys(DATA);result.innerHTML='<div class="card"><div class="cute">📚 🐰 ✏️</div><h2>教材模式｜一字一頁</h2><p>每個生字都是一張獨立教材卡。</p><div class="lesson-grid">'+chars.map((c,i)=>lessonCard(c,DATA[c],i)).join("")+'</div></div>'}
+function lessonCard(c,d,i){return '<article class="lesson-card"><div class="cute">'+["🌱","🐰","⭐","🍀"][i%4]+'</div><div class="lesson-char">'+c+'</div><h3>'+c+'｜'+d.zhuyin+'</h3><div class="lesson-part">'+partsHtml(d.parts)+'</div><div class="lesson-words"><strong>詞語：</strong>'+d.words.join("、")+'<br><strong>部首：</strong>'+d.radical+'　<strong>筆畫：</strong>'+d.strokes+'</div><div class="lesson-sentence">💬 '+d.sentence+'</div></article>'}
+function startQuiz(){currentMode="quiz";const chars=shuffle(Object.keys(DATA));quizState={chars,idx:0,score:0,answered:false};renderQuiz()}
+function renderQuiz(){const c=quizState.chars[quizState.idx],d=DATA[c],types=["字音選擇","共同部件","詞語辨識"],type=types[quizState.idx%3];let q,opts,answer;if(type==="字音選擇"){q="請選出「"+c+"」的正確注音";answer=d.zhuyin;opts=shuffle([answer,...Object.values(DATA).filter(x=>x.zhuyin!==answer).map(x=>x.zhuyin)].slice(0,4))}else if(type==="共同部件"){q="「"+c+"」的共同部件是哪一個？";answer=d.parts[0][0];opts=shuffle([answer,...["扌","口","氵","木","日"].filter(x=>x!==answer)].slice(0,4))}else{q="哪一個是「"+c+"」的常用詞語？";answer=d.words[0];opts=shuffle([answer,...Object.values(DATA).filter(x=>!x.words.includes(answer)).map(x=>x.words[0])].slice(0,4))}quizState.answer=answer;quizState.answered=false;result.innerHTML='<div class="card"><div class="quiz-progress">📝 第 '+(quizState.idx+1)+' / '+quizState.chars.length+' 題　｜　目前 '+quizState.score+' 分</div><div class="quiz-char">'+c+'</div><h2>'+q+'</h2><div class="quiz-options">'+opts.map(o=>'<button class="quiz-option" data-answer="'+encodeURIComponent(o)+'">'+o+'</button>').join("")+'</div><div class="quiz-tip">💡 小提醒：慢慢看字形，再找共同部件。</div></div>';document.querySelectorAll(".quiz-option").forEach(b=>b.addEventListener("click",()=>answerQuiz(decodeURIComponent(b.dataset.answer))))}
+function answerQuiz(v){if(quizState.answered)return;quizState.answered=true;const ok=v===quizState.answer;if(ok)quizState.score++;const card=document.querySelector(".card");card.insertAdjacentHTML("beforeend",'<div class="quiz-feedback '+(ok?"correct":"wrong")+'">'+(ok?"🎉 答對了！":"再想一下～正確答案是「"+quizState.answer+"」。")+'</div><div class="quiz-actions"><button class="secondary-btn" id="nextQuiz">'+(quizState.idx===quizState.chars.length-1?"看結果":"下一題 ➜")+'</button></div>');document.querySelectorAll(".quiz-option").forEach(b=>b.disabled=true);document.querySelector("#nextQuiz").addEventListener("click",()=>{if(quizState.idx===quizState.chars.length-1)showQuizResult();else{quizState.idx++;renderQuiz()}})}
+function showQuizResult(){result.innerHTML='<div class="card"><div class="cute">🎉 🐰 ⭐</div><div class="score">測驗完成！<br>'+quizState.score+' / '+quizState.chars.length+' 題</div><p style="text-align:center">可以再按一次「📝 出測驗」重新挑戰。</p><div class="quiz-actions"><button class="quiz-btn" id="restartQuiz">🔄 再測一次</button></div></div>';document.querySelector("#restartQuiz").addEventListener("click",startQuiz)}
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
 function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
 analyze();
